@@ -91,7 +91,7 @@ def transform(points, rows, cols):
     return output_points, min_y, y_transform, min_x, x_transform
 
 
-def dump_points(output_fh, rows, cols, points, min_y, y_transform, min_x, x_transform, use_glyphs=True):
+def dump_points(output_fh, rows, cols, points, min_y, y_transform, min_x, x_transform, draw_bars=False, use_glyphs=True):
     ys = points.keys()
     xs = list(itertools.chain([x.keys()[0] for x in points.values()]))
 
@@ -100,6 +100,8 @@ def dump_points(output_fh, rows, cols, points, min_y, y_transform, min_x, x_tran
 
     row_tick_incr = rows / 10
 
+    x_drop_bars = {}
+
     for y in range(rows, -1, -1):
         axis_str = "   |"
         if (y % row_tick_incr == 0) or (y == max_y):
@@ -107,14 +109,17 @@ def dump_points(output_fh, rows, cols, points, min_y, y_transform, min_x, x_tran
 
         output_fh.write(axis_str)
 
-        if y in points:
-            for x in range(cols + 1):
-                output_char = ' '
-                if x in points[y]:
-                    output_char = str(points[y][x])
-                    if use_glyphs:
-                        output_char = GLYPHS.get(points[y][x], output_char)
-                output_fh.write(output_char)
+        for x in range(cols + 1):
+            output_char = ' '
+            if y in points and x in points[y]:
+                output_char = str(points[y][x])
+                if use_glyphs:
+                    output_char = GLYPHS.get(points[y][x], output_char)
+                x_drop_bars[x] = output_char
+            elif draw_bars and (x in x_drop_bars):
+                output_char = x_drop_bars[x]
+                output_char = "⋅"
+            output_fh.write(output_char)
 
         output_fh.write(os.linesep)
 
@@ -134,7 +139,7 @@ def dump_points(output_fh, rows, cols, points, min_y, y_transform, min_x, x_tran
     output_fh.write(os.linesep)
 
 
-def ascii_scatter(output_fh, points, rows, cols, use_glyphs):
+def ascii_scatter(output_fh, points, rows, cols, draw_bars=False, use_glyphs=False):
     output_points, min_y, y_transform, min_x, x_transform = \
         transform(points, rows, cols)
     dump_points(output_fh,
@@ -142,10 +147,13 @@ def ascii_scatter(output_fh, points, rows, cols, use_glyphs):
                 output_points,
                 min_y, y_transform,
                 min_x, x_transform,
-                use_glyphs)
+                draw_bars=draw_bars,
+                use_glyphs=use_glyphs)
 
 
-def pylab_scatter(points):
+def pylab_scatter(points, draw_bars=False):
+    # FUTURE: implement draw_bars=True, perhaps like
+    # http://www.mail-archive.com/matplotlib-users@lists.sourceforge.net/msg03309.html
     ys = points.keys()
     xs = list(itertools.chain([x.keys()[0] for x in points.values()]))
     import pylab
@@ -157,20 +165,28 @@ def parse_options():
     parser = OptionParser()
     parser.add_option("-r", "--rows", default=20, type=int)
     parser.add_option("-c", "--cols", default=40, type=int)
+    parser.add_option("-b", "--bars", action="store_true")
     parser.add_option("--use-pylab", action="store_true")
     parser.add_option("--glyphs", action="store_true")
 
     options, args = parser.parse_args()
 
-    return options.rows, options.cols, sys.stdin, sys.stdout, options.use_pylab, options.glyphs
+    return (options.rows,
+            options.cols,
+            sys.stdin,
+            sys.stdout,
+            options.bars,
+            options.use_pylab,
+            options.glyphs,
+            )
 
 
 
 if __name__ == "__main__":
-    rows, cols, input_fh, output_fh, use_pylab, use_glyphs = parse_options()
+    rows, cols, input_fh, output_fh, draw_bars, use_pylab, use_glyphs = parse_options()
     points = getinput(input_fh)
     if not use_pylab:
-        ascii_scatter(output_fh, points, rows, cols, use_glyphs)
+        ascii_scatter(output_fh, points, rows, cols, draw_bars, use_glyphs)
     else:
-        pylab_scatter(points)
+        pylab_scatter(points, draw_bars)
 
