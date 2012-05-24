@@ -168,6 +168,7 @@ def parse_options():
     parser.add_option("-b", "--bars", action="store_true")
     parser.add_option("--use-pylab", action="store_true")
     parser.add_option("--glyphs", action="store_true")
+    parser.add_option("-D", "--debug-dump-points", action="store_true")
 
     options, args = parser.parse_args()
 
@@ -178,13 +179,16 @@ def parse_options():
             options.bars,
             options.use_pylab,
             options.glyphs,
+            options.debug_dump_points,
             )
 
 
 
 if __name__ == "__main__":
-    rows, cols, input_fh, output_fh, draw_bars, use_pylab, use_glyphs = parse_options()
+    rows, cols, input_fh, output_fh, draw_bars, use_pylab, use_glyphs, debug_dump_points = parse_options()
     points = getinput(input_fh)
+    if debug_dump_points:
+        print points
     if not use_pylab:
         ascii_scatter(output_fh, points, rows, cols, draw_bars, use_glyphs)
     else:
